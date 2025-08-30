@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useChildrenStore } from '../stores/childrenStore';
-import AppLayout from '../components/layout/AppLayout';
-import ChildSelector from '../components/common/ChildSelector';
-import BehaviorTracker from '../components/common/BehaviorTracker';
+import { useState } from "react";
+import { useChildrenStore } from "../stores/childrenStore";
+import AppLayout from "../components/layout/AppLayout";
+import ChildSelector from "../components/common/ChildSelector";
+import BehaviorTracker from "../components/common/BehaviorTracker";
+import  FamilySummary  from "../components/common/FamilySummary";
 
 const HomePage = () => {
   const { children, selectedChild, setSelectedChild } = useChildrenStore();
@@ -11,7 +12,7 @@ const HomePage = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <ChildSelector 
+        <ChildSelector
           children={children}
           selectedChild={selectedChild}
           showSummary={showSummary}
@@ -21,15 +22,8 @@ const HomePage = () => {
           }}
           onShowSummary={() => setShowSummary(true)}
         />
-        
-        {showSummary ? (
-          <div className="text-center text-gray-500">
-            <h2 className="text-2xl font-bold mb-4">📊 สรุปครอบครัว</h2>
-            <p>กำลังพัฒนาส่วนนี้...</p>
-          </div>
-        ) : (
-          <BehaviorTracker />
-        )}
+
+        {showSummary ? <FamilySummary /> : <BehaviorTracker />}
       </div>
     </AppLayout>
   );
