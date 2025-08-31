@@ -1,0 +1,299 @@
+{
+  "children": [
+    {
+      "id": "child1",
+      "name": "น้องทีฟา",
+      "age": 11,
+      "gender": "female",
+      "emoji": "👧",
+      "bgColor": "#fecaca"
+    },
+    {
+      "id": "child2",
+      "name": "น้องทีฟอง", 
+      "age": 10,
+      "gender": "male",
+      "emoji": "👦",
+      "bgColor": "#bfdbfe"
+    },
+    {
+      "id": "child3",
+      "name": "น้องนิว",
+      "age": 8,
+      "gender": "male",
+      "emoji": "🧒",
+      "bgColor": "#a7f3d0"
+    },
+    {
+      "id": "child4",
+      "name": "น้องนิกกี้",
+      "age": 6,
+      "gender": "female", 
+      "emoji": "👶",
+      "bgColor": "#e9d5ff"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "b1",
+      "name": "🦷 แปรงฟัน",
+      "points": 3,
+      "color": "#bbf7d0",
+      "category": "personal_care"
+    },
+    {
+      "id": "b2", 
+      "name": "🧸 เก็บของเล่น",
+      "points": 2,
+      "color": "#bfdbfe",
+      "category": "household"
+    },
+    {
+      "id": "b3",
+      "name": "📚 อ่านหนังสือ",
+      "points": 5,
+      "color": "#c7d2fe",
+      "category": "education"
+    },
+    {
+      "id": "b4",
+      "name": "🥗 ทานผัก",
+      "points": 4,
+      "color": "#a7f3d0",
+      "category": "health"
+    },
+    {
+      "id": "b5",
+      "name": "📝 ทำการบ้าน",
+      "points": 8,
+      "color": "#fed7aa",
+      "category": "education"
+    },
+    {
+      "id": "b6",
+      "name": "🚿 อาบน้ำ",
+      "points": 3,
+      "color": "#e0e7ff",
+      "category": "personal_care"
+    },
+    {
+      "id": "b7",
+      "name": "🧺 ช่วยซักผ้า",
+      "points": 6,
+      "color": "#fef3c7",
+      "category": "household"
+    },
+    {
+      "id": "b8",
+      "name": "🏃 ออกกำลังกาย",
+      "points": 5,
+      "color": "#fde68a",
+      "category": "health"
+    },
+    {
+      "id": "b9",
+      "name": "🙏 สวดมนต์",
+      "points": 4,
+      "color": "#f3e8ff",
+      "category": "spiritual"
+    },
+    {
+      "id": "b10",
+      "name": "👥 ช่วยเหลือพี่น้อง",
+      "points": 7,
+      "color": "#fce7f3",
+      "category": "social"
+    }
+  ],
+  "badBehaviors": [
+    {
+      "id": "bb1",
+      "name": "😤 พูดหยาบ",
+      "penalty": -3,
+      "color": "#fecaca",
+      "severity": "medium"
+    },
+    {
+      "id": "bb2",
+      "name": "🤥 โกหก",
+      "penalty": -5,
+      "color": "#f3e8ff",
+      "severity": "high"
+    },
+    {
+      "id": "bb3",
+      "name": "😭 งอแง",
+      "penalty": -2,
+      "color": "#fed7aa",
+      "severity": "low"
+    },
+    {
+      "id": "bb4",
+      "name": "📱 เล่นมือถือนานเกิน",
+      "penalty": -4,
+      "color": "#fde68a",
+      "severity": "medium"
+    },
+    {
+      "id": "bb5",
+      "name": "🤜 ทำร้ายพี่น้อง",
+      "penalty": -8,
+      "color": "#f87171",
+      "severity": "high"
+    },
+    {
+      "id": "bb6",
+      "name": "🚫 ไม่ฟังคำสั่ง",
+      "penalty": -6,
+      "color": "#a78bfa",
+      "severity": "high"
+    },
+    {
+      "id": "bb7",
+      "name": "💢 โมโหใส่ผู้ใหญ่",
+      "penalty": -10,
+      "color": "#ef4444",
+      "severity": "critical"
+    },
+    {
+      "id": "bb8",
+      "name": "🍽️ ไม่กินข้าว",
+      "penalty": -3,
+      "color": "#fb7185",
+      "severity": "medium"
+    }
+  ],
+  "rewards": [
+    {
+      "id": "r1",
+      "name": "🍦 ไอศกรีม",
+      "cost": 10,
+      "icon": "🍦",
+      "category": "food",
+      "description": "ไอศกรีมรสโปรด 1 ถ้วย"
+    },
+    {
+      "id": "r2", 
+      "name": "🎮 เล่นเกม 30 นาที",
+      "cost": 15,
+      "icon": "🎮", 
+      "category": "entertainment",
+      "description": "เล่นเกมส์ได้เพิ่ม 30 นาที"
+    },
+    {
+      "id": "r3",
+      "name": "🎬 ดูหนัง",
+      "cost": 20,
+      "icon": "🎬",
+      "category": "entertainment", 
+      "description": "ดูหนังเรื่องโปรด 1 เรื่อง"
+    },
+    {
+      "id": "r4",
+      "name": "🍕 พิซซ่า",
+      "cost": 25,
+      "icon": "🍕",
+      "category": "food",
+      "description": "พิซซ่าชิ้นพิเศษ"
+    },
+    {
+      "id": "r5",
+      "name": "🧸 ของเล่นใหม่",
+      "cost": 50,
+      "icon": "🧸",
+      "category": "toys",
+      "description": "ของเล่นใหม่ราคาไม่เกิน 200 บาท"
+    },
+    {
+      "id": "r6",
+      "name": "🎪 ไปงานเทศกาล",
+      "cost": 80,
+      "icon": "🎪",
+      "category": "experience",
+      "description": "ไปงานเทศกาลหรือสวนสนุก"
+    },
+    {
+      "id": "r7",
+      "name": "💰 เงินพิเศษ 100 บาท",
+      "cost": 100,
+      "icon": "💰",
+      "category": "money",
+      "description": "เงินพิเศษ 100 บาท"
+    },
+    {
+      "id": "r8",
+      "name": "🎂 เค้กวันเกิด",
+      "cost": 60,
+      "icon": "🎂",
+      "category": "food",
+      "description": "เค้กวันเกิดพิเศษ"
+    },
+    {
+      "id": "r9",
+      "name": "🏊 ไปสวนน้ำ",
+      "cost": 120,
+      "icon": "🏊",
+      "category": "experience",
+      "description": "ไปเล่นสวนน้ำทั้งวัน"
+    },
+    {
+      "id": "r10",
+      "name": "🛍️ ไปช้อปปิ้ง",
+      "cost": 150,
+      "icon": "🛍️",
+      "category": "experience",
+      "description": "ไปช้อปปิ้งซื้อเสื้อผ้า"
+    },
+    {
+      "id": "r11",
+      "name": "🎨 ซื้ออุปกรณ์วาดรูป",
+      "cost": 40,
+      "icon": "🎨",
+      "category": "education",
+      "description": "สีเทียน/สีไม้ชุดใหม่"
+    },
+    {
+      "id": "r12",
+      "name": "📚 หนังสือใหม่",
+      "cost": 30,
+      "icon": "📚",
+      "category": "education",
+      "description": "หนังสือเรื่องโปรด 1 เล่ม"
+    }
+  ],
+  "settings": {
+    "pointsSystem": {
+      "dailyReset": true,
+      "weeklyBonus": false,
+      "maxPointsPerDay": 50,
+      "minPointsPerBehavior": 1,
+      "maxPointsPerBehavior": 20
+    },
+    "ui": {
+      "theme": "rainbow",
+      "language": "th", 
+      "showAvatars": true,
+      "showProgress": true,
+      "animations": true
+    },
+    "notifications": {
+      "dailyReminder": true,
+      "achievementAlerts": true,
+      "parentReports": false
+    },
+    "familyGoals": [
+      {
+        "name": "ทุกคนแปรงฟันครบทุกวัน",
+        "target": "all_children_daily",
+        "behavior": "b1",
+        "reward": "Family movie night"
+      },
+      {
+        "name": "รวมคะแนนครอบครัว 200 คะแนน",
+        "target": "total_points",
+        "threshold": 200,
+        "reward": "Weekend trip"
+      }
+    ]
+  }
+}
