@@ -1,8 +1,11 @@
-import HomePage from './pages/HomePage';
-import './index.css';
+import HomePage from "./pages/HomePage";
+import AdminPage from "./pages/AdminPage";
+import "./index.css";
 
 function App() {
-  return <HomePage />;
+  // เปลี่ยนหน้า admin ได้จาก query string หรือเงื่อนไขอื่น ๆ
+  const isAdmin = window.location.search.includes("admin");
+  return isAdmin ? <AdminPage /> : <HomePage />;
 }
 
 export default App;

@@ -1,334 +1,349 @@
 import { create } from "zustand";
-import { storage } from "../utils/storage";
+import { v4 as uuidv4 } from "uuid";
+import { persist } from "zustand/middleware";
 import { RAINBOW_COLORS } from "../utils/colors";
 
+// Initial behaviors and rewards that will be converted to shared templates
+const INITIAL_SHARED_BEHAVIORS = {
+  behaviors: [
+    {
+      id: uuidv4(),
+      name: "🦷 แปรงฟัน",
+      points: 5,
+      color: RAINBOW_COLORS.cyan,
+    },
+    {
+      id: uuidv4(),
+      name: "🧸 เก็บของเล่น",
+      points: 3,
+      color: RAINBOW_COLORS.orange,
+    },
+    {
+      id: uuidv4(),
+      name: "📚 อ่านหนังสือ",
+      points: 4,
+      color: RAINBOW_COLORS.purple,
+    },
+    {
+      id: uuidv4(),
+      name: "🥗 ทานผัก",
+      points: 6,
+      color: RAINBOW_COLORS.green,
+    },
+  ],
+  badBehaviors: [
+    {
+      id: uuidv4(),
+      name: "😤 พูดหยาบ",
+      penalty: -3,
+      color: RAINBOW_COLORS.red,
+    },
+    {
+      id: uuidv4(),
+      name: "🤥 โกหก",
+      penalty: -5,
+      color: RAINBOW_COLORS.orange,
+    },
+    {
+      id: uuidv4(),
+      name: "😭 งอแง",
+      penalty: -2,
+      color: RAINBOW_COLORS.yellow,
+    },
+    {
+      id: uuidv4(),
+      name: "🤜 ทำร้ายพี่น้อง",
+      penalty: -8,
+      color: RAINBOW_COLORS.indigo,
+    },
+  ],
+  rewards: [
+    {
+      id: uuidv4(),
+      name: "🎮 เล่นเกม 30 นาที",
+      cost: 15,
+    },
+    {
+      id: uuidv4(),
+      name: "📱 ดูยูทูป 30 นาที",
+      cost: 10,
+    },
+    {
+      id: uuidv4(),
+      name: "🧸 ของเล่นใหม่",
+      cost: 50,
+    },
+  ],
+};
+
+// Initial children with their completion records
 const INITIAL_CHILDREN = [
   {
-    id: 1,
+    id: uuidv4(),
     name: "น้องแนน",
     emoji: "🌈",
     color: "rainbow-pink",
     bgColor: RAINBOW_COLORS.pink,
     age: 8,
-  },
-  {
-    id: 2,
-    name: "น้องนิค",
-    emoji: "🦄",
-    color: "rainbow-blue",
-    bgColor: RAINBOW_COLORS.blue,
-    age: 10,
-  },
-  {
-    id: 3,
-    name: "น้องนิล",
-    emoji: "🌟",
-    color: "rainbow-green",
-    bgColor: RAINBOW_COLORS.green,
-    age: 5,
+    behaviors: [], // Record of completed behaviors
+    rewards: [], // Record of claimed rewards
+    points: 0,
   },
 ];
 
-const INITIAL_BEHAVIORS = {
-  1: {
-    behaviors: [
-      {
-        id: 1,
-        name: "🦷 แปรงฟัน",
-        points: 5,
-        completed: false,
-        color: RAINBOW_COLORS.cyan,
-      },
-      {
-        id: 2,
-        name: "🧸 เก็บของเล่น",
-        points: 3,
-        completed: false,
-        color: RAINBOW_COLORS.orange,
-      },
-      {
-        id: 3,
-        name: "📚 อ่านหนังสือ",
-        points: 4,
-        completed: false,
-        color: RAINBOW_COLORS.purple,
-      },
-      {
-        id: 4,
-        name: "🥗 ทานผัก",
-        points: 6,
-        completed: false,
-        color: RAINBOW_COLORS.green,
-      },
-    ],
-    badBehaviors: [
-      {
-        id: 1,
-        name: "😤 พูดหยาบ",
-        penalty: -3,
-        count: 0,
-        color: RAINBOW_COLORS.red,
-      },
-      {
-        id: 2,
-        name: "🤥 โกหก",
-        penalty: -5,
-        count: 0,
-        color: RAINBOW_COLORS.orange,
-      },
-      {
-        id: 3,
-        name: "😭 งอแง",
-        penalty: -2,
-        count: 0,
-        color: RAINBOW_COLORS.yellow,
-      },
-      {
-        id: 4,
-        name: "🤜 ทำร้ายพี่น้อง",
-        penalty: -8,
-        count: 0,
-        color: RAINBOW_COLORS.indigo,
-      },
-    ],
-    totalPoints: 0,
-  },
-  2: {
-    behaviors: [
-      {
-        id: 1,
-        name: "🦷 แปรงฟัน",
-        points: 5,
-        completed: false,
-        color: RAINBOW_COLORS.blue,
-      },
-      {
-        id: 2,
-        name: "🧸 เก็บของเล่น",
-        points: 3,
-        completed: false,
-        color: RAINBOW_COLORS.mint,
-      },
-      {
-        id: 3,
-        name: "📚 ทำการบ้าน",
-        points: 8,
-        completed: false,
-        color: RAINBOW_COLORS.purple,
-      },
-      {
-        id: 4,
-        name: "🏃 ออกกำลังกาย",
-        points: 4,
-        completed: false,
-        color: RAINBOW_COLORS.pink,
-      },
-    ],
-    badBehaviors: [
-      {
-        id: 1,
-        name: "📱 เล่นมือถือนานเกิน",
-        penalty: -4,
-        count: 0,
-        color: RAINBOW_COLORS.red,
-      },
-      {
-        id: 2,
-        name: "📝 ไม่ส่งการบ้าน",
-        penalty: -10,
-        count: 0,
-        color: RAINBOW_COLORS.orange,
-      },
-      {
-        id: 3,
-        name: "🤥 โกหก",
-        penalty: -6,
-        count: 0,
-        color: RAINBOW_COLORS.yellow,
-      },
-      {
-        id: 4,
-        name: "😤 ดื้อพ่อแม่",
-        penalty: -5,
-        count: 0,
-        color: RAINBOW_COLORS.cyan,
-      },
-    ],
-    totalPoints: 0,
-  },
-  3: {
-    behaviors: [
-      {
-        id: 1,
-        name: "🦷 แปรงฟัน",
-        points: 3,
-        completed: false,
-        color: RAINBOW_COLORS.green,
-      },
-      {
-        id: 2,
-        name: "🧸 เก็บของเล่น",
-        points: 2,
-        completed: false,
-        color: RAINBOW_COLORS.pink,
-      },
-      {
-        id: 3,
-        name: "🥛 ดื่มนม",
-        points: 2,
-        completed: false,
-        color: RAINBOW_COLORS.blue,
-      },
-      {
-        id: 4,
-        name: "😴 นอนเองไม่งอแง",
-        points: 5,
-        completed: false,
-        color: RAINBOW_COLORS.indigo,
-      },
-    ],
-    badBehaviors: [
-      {
-        id: 1,
-        name: "😭 ร้องไห้งอแง",
-        penalty: -2,
-        count: 0,
-        color: RAINBOW_COLORS.red,
-      },
-      {
-        id: 2,
-        name: "🍼 ไม่ยอมดื่มนม",
-        penalty: -2,
-        count: 0,
-        color: RAINBOW_COLORS.orange,
-      },
-      {
-        id: 3,
-        name: "🤜 ตีพี่น้อง",
-        penalty: -5,
-        count: 0,
-        color: RAINBOW_COLORS.yellow,
-      },
-      {
-        id: 4,
-        name: "🚫 ไม่ฟังคำสั่ง",
-        penalty: -3,
-        count: 0,
-        color: RAINBOW_COLORS.purple,
-      },
-    ],
-    totalPoints: 0,
-  },
-};
+const useChildrenStore = create(
+  persist(
+    (set, get) => ({
+      children: INITIAL_CHILDREN,
+      sharedBehaviors: INITIAL_SHARED_BEHAVIORS,
+      selectedChild: null, // Track the currently selected child
 
-const calculateTotalPoints = (childData) => {
-  let total = 0;
-  childData.behaviors.forEach((b) => {
-    if (b.completed) total += b.points;
-  });
-  childData.badBehaviors.forEach((b) => {
-    total += b.penalty * b.count;
-  });
-  return total;
-};
+      // Add a child
+      addChild: (child) =>
+        set((state) => ({
+          children: [
+            ...state.children,
+            {
+              id: uuidv4(),
+              ...child,
+              points: 0,
+              behaviors: [], // Individual record of completed behaviors
+              rewards: [], // Individual record of claimed rewards
+            },
+          ],
+        })),
 
-export const useChildrenStore = create((set, get) => ({
-  children: storage.get("children", INITIAL_CHILDREN),
-  childrenData: storage.get("childrenData", INITIAL_BEHAVIORS),
-  selectedChild: storage.get("selectedChild", 1),
+      // Remove a child
+      removeChild: (childId) =>
+        set((state) => ({
+          children: state.children.filter((child) => child.id !== childId),
+        })),
 
-  setSelectedChild: (childId) => {
-    set({ selectedChild: childId });
-    storage.set("selectedChild", childId);
-  },
+      // Update child details
+      updateChild: (childId, updates) =>
+        set((state) => ({
+          children: state.children.map((child) =>
+            child.id === childId ? { ...child, ...updates } : child
+          ),
+        })),
 
-  toggleBehavior: (childId, behaviorId) => {
-    const state = get();
-    const child = state.childrenData[childId];
+      // Calculate total points for a child
+      calculateTotalPoints: (childId) => {
+        const state = get();
+        const child = state.children.find((c) => c.id === childId);
+        if (!child) return 0;
 
-    const updatedBehaviors = child.behaviors.map((behavior) => {
-      if (behavior.id === behaviorId) {
-        return { ...behavior, completed: !behavior.completed };
-      }
-      return behavior;
-    });
+        // Sum up points from completed behaviors
+        const behaviorPoints = child.behaviors.reduce((total, record) => {
+          const behavior = state.sharedBehaviors.behaviors.find(
+            (b) => b.id === record.behaviorId
+          );
+          const badBehavior = state.sharedBehaviors.badBehaviors.find(
+            (b) => b.id === record.behaviorId
+          );
 
-    const updatedChild = { ...child, behaviors: updatedBehaviors };
-    const newTotalPoints = calculateTotalPoints(updatedChild);
+          if (behavior) {
+            return total + (behavior.points || 0);
+          }
+          if (badBehavior) {
+            return total + (badBehavior.penalty || 0); // Penalty is already negative
+          }
+          return total;
+        }, 0);
 
-    const updatedChildrenData = {
-      ...state.childrenData,
-      [childId]: { ...updatedChild, totalPoints: newTotalPoints },
-    };
+        // Subtract points from claimed rewards
+        const rewardPoints = child.rewards.reduce((total, record) => {
+          const reward = state.sharedBehaviors.rewards.find(
+            (r) => r.id === record.rewardId
+          );
+          return total - (reward?.cost || 0);
+        }, 0);
 
-    set({ childrenData: updatedChildrenData });
-    storage.set("childrenData", updatedChildrenData);
-  },
-
-  addBadBehavior: (childId, behaviorId) => {
-    const state = get();
-    const child = state.childrenData[childId];
-
-    const updatedBadBehaviors = child.badBehaviors.map((behavior) => {
-      if (behavior.id === behaviorId) {
-        return { ...behavior, count: behavior.count + 1 };
-      }
-      return behavior;
-    });
-
-    const updatedChild = { ...child, badBehaviors: updatedBadBehaviors };
-    const newTotalPoints = calculateTotalPoints(updatedChild);
-
-    const updatedChildrenData = {
-      ...state.childrenData,
-      [childId]: { ...updatedChild, totalPoints: newTotalPoints },
-    };
-
-    set({ childrenData: updatedChildrenData });
-    storage.set("childrenData", updatedChildrenData);
-  },
-
-  removeBadBehavior: (childId, behaviorId) => {
-    const state = get();
-    const child = state.childrenData[childId];
-    const badBehavior = child.badBehaviors.find((b) => b.id === behaviorId);
-
-    if (badBehavior.count === 0) return;
-
-    const updatedBadBehaviors = child.badBehaviors.map((behavior) => {
-      if (behavior.id === behaviorId) {
-        return { ...behavior, count: behavior.count - 1 };
-      }
-      return behavior;
-    });
-
-    const updatedChild = { ...child, badBehaviors: updatedBadBehaviors };
-    const newTotalPoints = calculateTotalPoints(updatedChild);
-
-    const updatedChildrenData = {
-      ...state.childrenData,
-      [childId]: { ...updatedChild, totalPoints: newTotalPoints },
-    };
-
-    set({ childrenData: updatedChildrenData });
-    storage.set("childrenData", updatedChildrenData);
-  },
-
-  resetChildDay: (childId) => {
-    const state = get();
-    const child = state.childrenData[childId];
-
-    const updatedChildrenData = {
-      ...state.childrenData,
-      [childId]: {
-        ...child,
-        behaviors: child.behaviors.map((b) => ({ ...b, completed: false })),
-        badBehaviors: child.badBehaviors.map((b) => ({ ...b, count: 0 })),
-        totalPoints: 0,
+        return behaviorPoints + rewardPoints;
       },
-    };
 
-    set({ childrenData: updatedChildrenData });
-    storage.set("childrenData", updatedChildrenData);
-  },
-}));
+      // Shared behavior templates management
+      addSharedBehavior: (behavior) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            behaviors: [
+              ...state.sharedBehaviors.behaviors,
+              { ...behavior, id: uuidv4() },
+            ],
+          },
+        })),
+
+      updateSharedBehavior: (behaviorId, updates) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            behaviors: state.sharedBehaviors.behaviors.map((behavior) =>
+              behavior.id === behaviorId
+                ? { ...behavior, ...updates }
+                : behavior
+            ),
+          },
+        })),
+
+      removeSharedBehavior: (behaviorId) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            behaviors: state.sharedBehaviors.behaviors.filter(
+              (behavior) => behavior.id !== behaviorId
+            ),
+          },
+        })),
+
+      // Bad behavior templates management
+      addSharedBadBehavior: (behavior) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            badBehaviors: [
+              ...state.sharedBehaviors.badBehaviors,
+              { ...behavior, id: uuidv4() },
+            ],
+          },
+        })),
+
+      updateSharedBadBehavior: (behaviorId, updates) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            badBehaviors: state.sharedBehaviors.badBehaviors.map((behavior) =>
+              behavior.id === behaviorId
+                ? { ...behavior, ...updates }
+                : behavior
+            ),
+          },
+        })),
+
+      removeSharedBadBehavior: (behaviorId) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            badBehaviors: state.sharedBehaviors.badBehaviors.filter(
+              (behavior) => behavior.id !== behaviorId
+            ),
+          },
+        })),
+
+      // Reward templates management
+      addSharedReward: (reward) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            rewards: [
+              ...state.sharedBehaviors.rewards,
+              { ...reward, id: uuidv4() },
+            ],
+          },
+        })),
+
+      updateSharedReward: (rewardId, updates) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            rewards: state.sharedBehaviors.rewards.map((reward) =>
+              reward.id === rewardId ? { ...reward, ...updates } : reward
+            ),
+          },
+        })),
+
+      removeSharedReward: (rewardId) =>
+        set((state) => ({
+          sharedBehaviors: {
+            ...state.sharedBehaviors,
+            rewards: state.sharedBehaviors.rewards.filter(
+              (reward) => reward.id !== rewardId
+            ),
+          },
+        })),
+
+      // Record a completed behavior for a child
+      recordBehavior: (
+        childId,
+        behaviorId,
+        timestamp = new Date().toISOString()
+      ) =>
+        set((state) => ({
+          children: state.children.map((child) =>
+            child.id === childId
+              ? {
+                  ...child,
+                  behaviors: [...child.behaviors, { behaviorId, timestamp }],
+                }
+              : child
+          ),
+        })),
+
+      // Claim a reward for a child
+      claimReward: (childId, rewardId, timestamp = new Date().toISOString()) =>
+        set((state) => {
+          const child = state.children.find((c) => c.id === childId);
+          const reward = state.sharedBehaviors.rewards.find(
+            (r) => r.id === rewardId
+          );
+
+          if (!child || !reward) return state;
+
+          const currentPoints = get().calculateTotalPoints(childId);
+          if (currentPoints < reward.cost) return state;
+
+          return {
+            children: state.children.map((c) =>
+              c.id === childId
+                ? {
+                    ...c,
+                    rewards: [...c.rewards, { rewardId, timestamp }],
+                  }
+                : c
+            ),
+          };
+        }),
+
+      // Remove a behavior record from a child
+      removeBehaviorRecord: (childId, timestamp) =>
+        set((state) => ({
+          children: state.children.map((child) =>
+            child.id === childId
+              ? {
+                  ...child,
+                  behaviors: child.behaviors.filter(
+                    (record) => record.timestamp !== timestamp
+                  ),
+                }
+              : child
+          ),
+        })),
+
+      // Remove a reward claim from a child
+      removeRewardClaim: (childId, timestamp) =>
+        set((state) => ({
+          children: state.children.map((child) =>
+            child.id === childId
+              ? {
+                  ...child,
+                  rewards: child.rewards.filter(
+                    (record) => record.timestamp !== timestamp
+                  ),
+                }
+              : child
+          ),
+        })),
+
+      // Set the selected child
+      setSelectedChild: (childId) =>
+        set(() => ({
+          selectedChild: childId,
+        })),
+    }),
+    {
+      name: "children-store",
+    }
+  )
+);
+
+export { useChildrenStore };

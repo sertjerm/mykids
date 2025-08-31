@@ -1,0 +1,394 @@
+import { create } from "zustand";
+import { storage } from "../utils/storage";
+import { RAINBOW_COLORS } from "../utils/colors";
+
+const INITIAL_CHILDREN = [
+  {
+    id: 1,
+    name: "น้องแนน",
+    emoji: "🌈",
+    color: "rainbow-pink",
+    bgColor: RAINBOW_COLORS.pink,
+    age: 8
+  },
+  {
+    id: 2,
+    name: "น้องนิค",
+    emoji: "🦄",
+    color: "rainbow-blue",
+    bgColor: RAINBOW_COLORS.blue,
+    age: 10
+  },
+  {
+    id: 3,
+    name: "น้องนิล",
+    emoji: "🌟",
+    color: "rainbow-green",
+    bgColor: RAINBOW_COLORS.green,
+    age: 5
+  }
+];
+
+// พฤติกรรมและรางวัลที่ใช้ร่วมกัน
+const SHARED_BEHAVIORS = {
+  behaviors: [
+    { id: 1, name: "🦷 แปรงฟัน", points: 5, color: RAINBOW_COLORS.cyan },
+    { id: 2, name: "🧸 เก็บของเล่น", points: 3, color: RAINBOW_COLORS.orange },
+    { id: 3, name: "📚 อ่านหนังสือ", points: 4, color: RAINBOW_COLORS.purple },
+    { id: 4, name: "🥗 ทานผัก", points: 6, color: RAINBOW_COLORS.green }
+  ],
+  badBehaviors: [
+    { id: 1, name: "😤 พูดหยาบ", penalty: -3, color: RAINBOW_COLORS.red },
+    { id: 2, name: "🤥 โกหก", penalty: -5, color: RAINBOW_COLORS.orange },
+    { id: 3, name: "😭 งอแง", penalty: -2, color: RAINBOW_COLORS.yellow },
+    { id: 4, name: "🤜 ทำร้ายพี่น้อง", penalty: -8, color: RAINBOW_COLORS.indigo }
+  ],
+  rewards: [
+    { id: 1, name: "🎮 เล่นเกม 30 นาที", cost: 20 },
+    { id: 2, name: "🍦 ไอศกรีม", cost: 15 },
+    { id: 3, name: "🎬 ดูหนัง", cost: 25 },
+    { id: 4, name: "🎪 เที่ยวสวนสนุก", cost: 50 }
+  ]
+};
+
+// สร้าง initial state สำหรับแต่ละคน
+const INITIAL_BEHAVIORS = {};
+INITIAL_CHILDREN.forEach(child => {
+  INITIAL_BEHAVIORS[child.id] = {
+    behaviors: SHARED_BEHAVIORS.behaviors.map(b => ({ ...b, completed: false })),
+    badBehaviors: SHARED_BEHAVIORS.badBehaviors.map(b => ({ ...b, count: 0 })),
+    totalPoints: 0
+  };
+});
+
+export const useChildrenStore = create((set, get) => ({
+  children: storage.get('children', INITIAL_CHILDREN),
+  childrenData: storage.get('childrenData', INITIAL_BEHAVIORS),
+  sharedBehaviors: storage.get('sharedBehaviors', SHARED_BEHAVIORS),
+  selectedChild: storage.get('selectedChild', 1),
+
+  setSelectedChild: (childId) => {
+    set({ selectedChild: childId });
+    storage.set('selectedChild', childId);
+  },
+
+  // จัดการพฤติกรรมที่ใช้ร่วมกัน
+  addSharedBehavior: (behavior) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+    const newBehavior = {
+      ...behavior,
+      id: Date.now()
+    };
+
+    // เพิ่มในรายการที่ใช้ร่วมกัน
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      behaviors: [...sharedBehaviors.behaviors, newBehavior]
+    };
+
+    // เพิ่มให้กับทุกคน
+    const newChildrenData = {};
+    Object.entries(store.childrenData).forEach(([childId, data]) => {
+      newChildrenData[childId] = {
+        ...data,
+        behaviors: [...data.behaviors, { ...newBehavior, completed: false }]
+      };
+    });
+
+    set({ 
+      sharedBehaviors: newSharedBehaviors,
+      childrenData: newChildrenData 
+    });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+    storage.set('childrenData', newChildrenData);
+  },
+
+  addSharedBadBehavior: (behavior) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+    const newBehavior = {
+      ...behavior,
+      id: Date.now()
+    };
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      badBehaviors: [...sharedBehaviors.badBehaviors, newBehavior]
+    };
+
+    const newChildrenData = {};
+    Object.entries(store.childrenData).forEach(([childId, data]) => {
+      newChildrenData[childId] = {
+        ...data,
+        badBehaviors: [...data.badBehaviors, { ...newBehavior, count: 0 }]
+      };
+    });
+
+    set({ 
+      sharedBehaviors: newSharedBehaviors,
+      childrenData: newChildrenData 
+    });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+    storage.set('childrenData', newChildrenData);
+  },
+
+  addSharedReward: (reward) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+    const newReward = {
+      ...reward,
+      id: Date.now()
+    };
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      rewards: [...sharedBehaviors.rewards, newReward]
+    };
+
+    set({ sharedBehaviors: newSharedBehaviors });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+  },
+
+  // อัพเดทพฤติกรรมที่ใช้ร่วมกัน
+  updateSharedBehavior: (behaviorId, updates) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      behaviors: sharedBehaviors.behaviors.map(b => 
+        b.id === behaviorId ? { ...b, ...updates } : b
+      )
+    };
+
+    const newChildrenData = {};
+    Object.entries(store.childrenData).forEach(([childId, data]) => {
+      newChildrenData[childId] = {
+        ...data,
+        behaviors: data.behaviors.map(b => 
+          b.id === behaviorId ? { ...b, ...updates, completed: b.completed } : b
+        )
+      };
+    });
+
+    set({ 
+      sharedBehaviors: newSharedBehaviors,
+      childrenData: newChildrenData 
+    });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+    storage.set('childrenData', newChildrenData);
+  },
+
+  updateSharedBadBehavior: (behaviorId, updates) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      badBehaviors: sharedBehaviors.badBehaviors.map(b => 
+        b.id === behaviorId ? { ...b, ...updates } : b
+      )
+    };
+
+    const newChildrenData = {};
+    Object.entries(store.childrenData).forEach(([childId, data]) => {
+      newChildrenData[childId] = {
+        ...data,
+        badBehaviors: data.badBehaviors.map(b => 
+          b.id === behaviorId ? { ...b, ...updates, count: b.count } : b
+        )
+      };
+    });
+
+    set({ 
+      sharedBehaviors: newSharedBehaviors,
+      childrenData: newChildrenData 
+    });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+    storage.set('childrenData', newChildrenData);
+  },
+
+  updateSharedReward: (rewardId, updates) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      rewards: sharedBehaviors.rewards.map(r => 
+        r.id === rewardId ? { ...r, ...updates } : r
+      )
+    };
+
+    set({ sharedBehaviors: newSharedBehaviors });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+  },
+
+  // ลบรายการที่ใช้ร่วมกัน
+  removeSharedBehavior: (behaviorId) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      behaviors: sharedBehaviors.behaviors.filter(b => b.id !== behaviorId)
+    };
+
+    const newChildrenData = {};
+    Object.entries(store.childrenData).forEach(([childId, data]) => {
+      newChildrenData[childId] = {
+        ...data,
+        behaviors: data.behaviors.filter(b => b.id !== behaviorId)
+      };
+    });
+
+    set({ 
+      sharedBehaviors: newSharedBehaviors,
+      childrenData: newChildrenData 
+    });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+    storage.set('childrenData', newChildrenData);
+  },
+
+  removeSharedBadBehavior: (behaviorId) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      badBehaviors: sharedBehaviors.badBehaviors.filter(b => b.id !== behaviorId)
+    };
+
+    const newChildrenData = {};
+    Object.entries(store.childrenData).forEach(([childId, data]) => {
+      newChildrenData[childId] = {
+        ...data,
+        badBehaviors: data.badBehaviors.filter(b => b.id !== behaviorId)
+      };
+    });
+
+    set({ 
+      sharedBehaviors: newSharedBehaviors,
+      childrenData: newChildrenData 
+    });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+    storage.set('childrenData', newChildrenData);
+  },
+
+  removeSharedReward: (rewardId) => {
+    const store = get();
+    const { sharedBehaviors } = store;
+
+    const newSharedBehaviors = {
+      ...sharedBehaviors,
+      rewards: sharedBehaviors.rewards.filter(r => r.id !== rewardId)
+    };
+
+    set({ sharedBehaviors: newSharedBehaviors });
+    storage.set('sharedBehaviors', newSharedBehaviors);
+  },
+
+  // ฟังก์ชันที่มีอยู่เดิม
+  toggleBehavior: (childId, behaviorId) => {
+    const store = get();
+    const childData = store.childrenData[childId];
+    const newBehaviors = childData.behaviors.map(b =>
+      b.id === behaviorId ? { ...b, completed: !b.completed } : b
+    );
+
+    const newChildrenData = {
+      ...store.childrenData,
+      [childId]: {
+        ...childData,
+        behaviors: newBehaviors,
+        totalPoints: calculateTotalPoints({
+          ...childData,
+          behaviors: newBehaviors
+        })
+      }
+    };
+
+    set({ childrenData: newChildrenData });
+    storage.set('childrenData', newChildrenData);
+  },
+
+  addBadBehavior: (childId, behaviorId) => {
+    const store = get();
+    const childData = store.childrenData[childId];
+    const newBadBehaviors = childData.badBehaviors.map(b =>
+      b.id === behaviorId ? { ...b, count: b.count + 1 } : b
+    );
+
+    const newChildrenData = {
+      ...store.childrenData,
+      [childId]: {
+        ...childData,
+        badBehaviors: newBadBehaviors,
+        totalPoints: calculateTotalPoints({
+          ...childData,
+          badBehaviors: newBadBehaviors
+        })
+      }
+    };
+
+    set({ childrenData: newChildrenData });
+    storage.set('childrenData', newChildrenData);
+  },
+
+  removeBadBehavior: (childId, behaviorId) => {
+    const store = get();
+    const childData = store.childrenData[childId];
+    const newBadBehaviors = childData.badBehaviors.map(b =>
+      b.id === behaviorId && b.count > 0
+        ? { ...b, count: b.count - 1 }
+        : b
+    );
+
+    const newChildrenData = {
+      ...store.childrenData,
+      [childId]: {
+        ...childData,
+        badBehaviors: newBadBehaviors,
+        totalPoints: calculateTotalPoints({
+          ...childData,
+          badBehaviors: newBadBehaviors
+        })
+      }
+    };
+
+    set({ childrenData: newChildrenData });
+    storage.set('childrenData', newChildrenData);
+  },
+
+  resetChildDay: (childId) => {
+    const store = get();
+    const childData = store.childrenData[childId];
+
+    const newBehaviors = childData.behaviors.map(b => ({ ...b, completed: false }));
+    const newBadBehaviors = childData.badBehaviors.map(b => ({ ...b, count: 0 }));
+
+    const newChildrenData = {
+      ...store.childrenData,
+      [childId]: {
+        ...childData,
+        behaviors: newBehaviors,
+        badBehaviors: newBadBehaviors,
+        totalPoints: 0
+      }
+    };
+
+    set({ childrenData: newChildrenData });
+    storage.set('childrenData', newChildrenData);
+  }
+}));
+
+const calculateTotalPoints = (childData) => {
+  let total = 0;
+  childData.behaviors.forEach(b => {
+    if (b.completed) total += b.points;
+  });
+  childData.badBehaviors.forEach(b => {
+    total += b.penalty * b.count;
+  });
+  return total;
+};
