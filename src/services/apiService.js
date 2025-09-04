@@ -1,250 +1,95 @@
-// src/services/apiService.js
-// Updated API Service สำหรับใช้กับ Vite Proxy
-
-// ใช้ environment variable ที่กำหนดใน vite.config.js
-const API_BASE_URL = import.meta.env.MODE === 'development' 
-  ? '/api'  // ใช้ proxy ใน development
-  : 'https://apps4.coop.ku.ac.th/mykids/api';  // ใช้ direct URL ใน production
-
-console.log(`🌐 API Mode: ${import.meta.env.MODE}, Base URL: ${API_BASE_URL}`);
-
-class MyKidsApiService {
+// services/apiService.js
+class ApiService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = 'https://apps4.coop.ku.ac.th/mykids/api';
+    this.authHeader = '';
   }
 
-  // Helper method สำหรับ HTTP requests
-  async request(endpoint, options = {}) {
-    // ใน development ใช้ proxy: /api/?children
-    // ใน production ใช้ direct: https://apps4.coop.ku.ac.th/mykids/api/?children
-    const url = `${this.baseURL}/${endpoint}`;
-    
+  async request(url, options = {}) {
     const config = {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        ...(this.authHeader && { Authorization: this.authHeader }),
+        ...options.headers,
       },
       ...options,
     };
 
     try {
-      console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
-      
-      const response = await fetch(url, config);
+      const response = await fetch(`${this.baseURL}${url}`, config);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data = await response.json();
-      console.log(`📥 API Response:`, data);
       
-      // แปลง response format ให้ตรงกับที่ client คาดหวัง
-      return this.normalizeResponse(data);
+      return await response.json();
     } catch (error) {
-      console.error('❌ API request failed:', error);
+      console.error('API Error:', error);
       throw error;
     }
   }
 
-  // Normalize API response format
-  normalizeResponse(rawData) {
-    if (Array.isArray(rawData)) {
-      return {
-        data: rawData.map(item => this.normalizeItem(item)),
-        success: true
-      };
-    }
-    
-    if (rawData && typeof rawData === 'object') {
-      return {
-        data: this.normalizeItem(rawData),
-        success: true
-      };
-    }
-    
-    return {
-      data: rawData,
-      success: true
-    };
-  }
-
-  // แปลง PascalCase เป็น camelCase
-  normalizeItem(item) {
-    if (!item || typeof item !== 'object') return item;
-    
-    const normalized = {};
-    
-    Object.keys(item).forEach(key => {
-      const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
-      normalized[camelKey] = item[key];
-    });
-    
-    return normalized;
-  }
-
-  // ========== API ENDPOINTS ==========
-  
+  // ดึงข้อมูลเด็กทั้งหมด
   async getChildren() {
-    return await this.request('?children');
+    return this.request('/children');
   }
 
-  async getChild(childId) {
-    return await this.request(`?children=${childId}`);
+  // ดึงข้อมูล behaviors
+  async getBehaviors() {
+    return this.request('/behaviors');
   }
 
-  async createChild(childData) {
-    // แปลงกลับเป็น PascalCase สำหรับส่งไป API
-    const apiData = this.prepareForApi(childData);
-    
-    return await this.request('?children', {
-      method: 'POST',
-      body: JSON.stringify(apiData),
-    });
-  }
-
-  async getActivities(childId = null) {
-    const endpoint = childId ? `?activities=${childId}` : '?activities';
-    return await this.request(endpoint);
-  }
-
-  async addGoodActivity(childId, activityId, points, note = '') {
-    const data = {
-      childId,
-      activityType: 'good',
-      activityId,
-      points,
-      note,
-    };
-    
-    return await this.request('?activities', {
-      method: 'POST',
-      body: JSON.stringify(this.prepareForApi(data)),
-    });
-  }
-
-  async addBadActivity(childId, activityId, points, note = '') {
-    const data = {
-      childId,
-      activityType: 'bad',
-      activityId,
-      points: -Math.abs(points),
-      note,
-    };
-    
-    return await this.request('?activities', {
-      method: 'POST',
-      body: JSON.stringify(this.prepareForApi(data)),
-    });
-  }
-
-  async redeemReward(childId, rewardId, cost, note = '') {
-    const data = {
-      childId,
-      activityType: 'reward',
-      activityId: rewardId,
-      points: -Math.abs(cost),
-      note,
-    };
-    
-    return await this.request('?activities', {
-      method: 'POST',
-      body: JSON.stringify(this.prepareForApi(data)),
-    });
-  }
-
-  async getChildPoints(childId) {
-    return await this.request(`?points=${childId}`);
-  }
-
-  async getAllChildrenPoints() {
-    return await this.request('?points');
-  }
-
-  async getRewards() {
-    return await this.request('?rewards');
-  }
-
-  async getGoodBehaviors() {
-    return await this.request('?tasks');
-  }
-
+  // ดึงข้อมูล bad behaviors  
   async getBadBehaviors() {
-    return await this.request('?bad-behaviors');
+    return this.request('/bad-behaviors');
   }
 
-  async healthCheck() {
-    try {
-      const response = await this.request('?health');
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Health check failed:', error);
-      throw error;
-    }
+  // ดึงข้อมูล rewards
+  async getRewards() {
+    return this.request('/rewards');
   }
 
-  // ========== UTILITY METHODS ==========
-  
-  prepareForApi(data) {
-    if (Array.isArray(data)) {
-      return data.map(item => this.prepareItemForApi(item));
-    }
-    
-    if (data && typeof data === 'object') {
-      return this.prepareItemForApi(data);
-    }
-    
-    return data;
+  // ดึงกิจกรรมของเด็กในวันนี้ - สำคัญมาก!
+  async getTodayActivities(childId) {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    return this.request(`/activities?childId=${childId}&date=${today}`);
   }
 
-  prepareItemForApi(item) {
-    if (!item || typeof item !== 'object') return item;
-    
-    const prepared = {};
-    
-    Object.keys(item).forEach(key => {
-      const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
-      prepared[pascalKey] = item[key];
-    });
-    
-    return prepared;
+  // ดึงคะแนนรวมของเด็กในวันนี้
+  async getTodayScore(childId) {
+    const today = new Date().toISOString().split('T')[0];
+    return this.request(`/children/${childId}/today-score?date=${today}`);
   }
 
-  async importFromLocalStorage(localStorageData) {
-    return await this.request('?import', {
+  // บันทึกกิจกรรม
+  async logActivity(childId, activityType, activityId, points, note = '') {
+    return this.request('/activities', {
       method: 'POST',
-      body: JSON.stringify(this.prepareForApi(localStorageData)),
+      body: JSON.stringify({
+        childId,
+        activityType,
+        activityId,
+        points,
+        note,
+        activityDate: new Date().toISOString()
+      }),
     });
   }
 
-  // Migration helper
-  async migrateFromLocalStorage() {
-    try {
-      const localStorageData = {
-        children: JSON.parse(localStorage.getItem('mykids-children') || '[]'),
-        activities: JSON.parse(localStorage.getItem('mykids-activities') || '[]'),
-        rewards: JSON.parse(localStorage.getItem('mykids-rewards') || '[]'),
-        goodBehaviors: JSON.parse(localStorage.getItem('mykids-good-behaviors') || '[]'),
-        badBehaviors: JSON.parse(localStorage.getItem('mykids-bad-behaviors') || '[]'),
-      };
-
-      await this.importFromLocalStorage(localStorageData);
-      return true;
-    } catch (error) {
-      console.error('Migration failed:', error);
-      return false;
-    }
+  // ใช้รางวัล
+  async useReward(childId, rewardId, cost, note = '') {
+    return this.request('/activities', {
+      method: 'POST', 
+      body: JSON.stringify({
+        childId,
+        activityType: 'reward',
+        activityId: rewardId,
+        points: -cost,
+        note,
+        activityDate: new Date().toISOString()
+      }),
+    });
   }
 }
 
-// สร้าง singleton instance
-const apiService = new MyKidsApiService();
-
-// Export สำหรับ debug
-if (import.meta.env.MODE === 'development') {
-  window.myKidsApi = apiService;
-  console.log('🛠️ MyKids API Service available at window.myKidsApi');
-  console.log('🔗 API Base URL:', API_BASE_URL);
-}
-
-export default apiService;
+export default new ApiService();
