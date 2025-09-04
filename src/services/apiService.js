@@ -1,95 +1,137 @@
-// services/apiService.js
-class ApiService {
+// src/services/apiService.js
+// API Service Layer สำหรับเชื่อมต่อ MyKids Database API
+
+const API_BASE_URL = '__API_URL_PLACEHOLDER__';
+
+class MyKidsApiService {
   constructor() {
-    this.baseURL = 'https://apps4.coop.ku.ac.th/mykids/api';
-    this.authHeader = '';
+    this.baseURL = API_BASE_URL;
   }
 
-  async request(url, options = {}) {
+  async request(endpoint, options = {}) {
+    const url = `${this.baseURL}/${endpoint}`;
     const config = {
       headers: {
         'Content-Type': 'application/json',
-        ...(this.authHeader && { Authorization: this.authHeader }),
-        ...options.headers,
+        'Accept': 'application/json',
       },
       ...options,
     };
 
     try {
-      const response = await fetch(`${this.baseURL}${url}`, config);
+      const response = await fetch(url, config);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      return await response.json();
+
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('API Error:', error);
+      console.error('API request failed:', error);
       throw error;
     }
   }
 
-  // ดึงข้อมูลเด็กทั้งหมด
+  // Children API
   async getChildren() {
-    return this.request('/children');
+    return await this.request('?children');
   }
 
-  // ดึงข้อมูล behaviors
-  async getBehaviors() {
-    return this.request('/behaviors');
+  async getChild(childId) {
+    return await this.request(`?children=${childId}`);
   }
 
-  // ดึงข้อมูล bad behaviors  
-  async getBadBehaviors() {
-    return this.request('/bad-behaviors');
-  }
-
-  // ดึงข้อมูล rewards
-  async getRewards() {
-    return this.request('/rewards');
-  }
-
-  // ดึงกิจกรรมของเด็กในวันนี้ - สำคัญมาก!
-  async getTodayActivities(childId) {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    return this.request(`/activities?childId=${childId}&date=${today}`);
-  }
-
-  // ดึงคะแนนรวมของเด็กในวันนี้
-  async getTodayScore(childId) {
-    const today = new Date().toISOString().split('T')[0];
-    return this.request(`/children/${childId}/today-score?date=${today}`);
-  }
-
-  // บันทึกกิจกรรม
-  async logActivity(childId, activityType, activityId, points, note = '') {
-    return this.request('/activities', {
+  async createChild(childData) {
+    return await this.request('?children', {
       method: 'POST',
-      body: JSON.stringify({
-        childId,
-        activityType,
-        activityId,
-        points,
-        note,
-        activityDate: new Date().toISOString()
-      }),
+      body: JSON.stringify(childData),
     });
   }
 
-  // ใช้รางวัล
-  async useReward(childId, rewardId, cost, note = '') {
-    return this.request('/activities', {
-      method: 'POST', 
-      body: JSON.stringify({
-        childId,
-        activityType: 'reward',
-        activityId: rewardId,
-        points: -cost,
-        note,
-        activityDate: new Date().toISOString()
-      }),
+  async updateChild(childId, childData) {
+    return await this.request(`?children=${childId}`, {
+      method: 'PUT',
+      body: JSON.stringify(childData),
     });
+  }
+
+  async deleteChild(childId) {
+    return await this.request(`?children=${childId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Activities API
+  async getActivities(childId = null) {
+    const endpoint = childId ? `?activities&child_id=${childId}` : '?activities';
+    return await this.request(endpoint);
+  }
+
+  async logActivity(activityData) {
+    return await this.request('?activities', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    });
+  }
+
+  // Behaviors API - Updated for MyKidsDB2
+  async getAllBehaviors() {
+    return await this.request('?behaviors');
+  }
+
+  async getGoodBehaviors() {
+    return await this.request('?good-behaviors');
+  }
+
+  async getBadBehaviors() {
+    return await this.request('?bad-behaviors');
+  }
+
+  // Rewards API
+  async getRewards() {
+    return await this.request('?rewards');
+  }
+
+  // Dashboard API
+  async getDashboard() {
+    return await this.request('?dashboard');
+  }
+
+  // Daily Activity API - NEW
+  async getDailyActivity(childId = null) {
+    const endpoint = childId ? `?daily&child_id=${childId}` : '?daily';
+    return await this.request(endpoint);
+  }
+
+  // Today Score API - NEW
+  async getTodayScore(childId) {
+    return await this.request(`?children=${childId}&today-score`);
+  }
+
+  // Health Check
+  async healthCheck() {
+    return await this.request('?health');
   }
 }
 
-export default new ApiService();
+// Auto-detect API URL
+const getApiBaseUrl = () => {
+  // Production
+  if (window.location.hostname === 'apps4.coop.ku.ac.th') {
+    return 'https://apps4.coop.ku.ac.th/mykids/api';
+  }
+  
+  // Development
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:5173/api'; // Vite proxy
+  }
+  
+  // Default fallback
+  return '/api';
+};
+
+export const apiService = new MyKidsApiService();
+apiService.baseURL = getApiBaseUrl();
+
+export default apiService;

@@ -1,5 +1,5 @@
 <?php
-// /mykids/api/index.php - Complete API for MyKidsDB2 with sqlsrv
+// /mykids/api/index.php - Fixed API for IIS Server using sqlsrv with MyKidsDB2
 error_reporting(E_ALL);
 ini_set('display_errors', 0); // ปิดการแสดง error เพื่อไม่ให้ HTML ปน JSON
 
@@ -8,9 +8,6 @@ while (ob_get_level()) {
     ob_end_clean();
 }
 ob_start();
-
-// เพิ่ม timezone setting ที่ต้นไฟล์
-date_default_timezone_set('Asia/Bangkok');
 
 // ตั้งค่า CORS headers อย่างถูกต้อง
 function setCorsHeaders() {
@@ -67,14 +64,14 @@ function sendJson($data, $status = 200) {
     exit();
 }
 
-// Database connection function using sqlsrv for MyKidsDB2
+// Database connection function using sqlsrv
 function getDbConnection() {
     try {
         $config = require __DIR__ . '/config.php';
         $db = $config['db'];
         
         $connectionInfo = [
-            "Database" => $db['database'], // อ่านจาก config (MyKidsDB2)
+            "Database" => $db['database'],
             "UID" => $db['username'],
             "PWD" => $db['password'],
             "MultipleActiveResultSets" => true,
@@ -148,8 +145,8 @@ try {
         
         $segments = array_filter(explode('/', trim($path, '/')));
         
-        // Look for API endpoints in the path - updated for MyKidsDB2
-        $apiEndpoints = ['children', 'behaviors', 'good-behaviors', 'bad-behaviors', 'rewards', 'activities', 'dashboard', 'health', 'tasks', 'daily'];
+        // Look for API endpoints in the path
+        $apiEndpoints = ['children', 'behaviors', 'rewards', 'activities', 'dashboard', 'health', 'tasks', 'bad-behaviors'];
         foreach ($segments as $i => $segment) {
             if (in_array($segment, $apiEndpoints)) {
                 $endpoint = $segment;
@@ -164,68 +161,48 @@ try {
         $uri = strtolower($requestUri);
         if (strpos($uri, 'children') !== false) {
             $endpoint = 'children';
-        } elseif (strpos($uri, 'good-behavior') !== false) {
-            $endpoint = 'good-behaviors';
-        } elseif (strpos($uri, 'bad-behavior') !== false) {
-            $endpoint = 'bad-behaviors';
-        } elseif (strpos($uri, 'behavior') !== false) {
-            $endpoint = 'behaviors';
         } elseif (strpos($uri, 'health') !== false) {
             $endpoint = 'health';
+        } elseif (strpos($uri, 'behaviors') !== false) {
+            $endpoint = 'behaviors';
         } elseif (strpos($uri, 'tasks') !== false) {
-            $endpoint = 'tasks'; // alias for good-behaviors
-        } elseif (strpos($uri, 'reward') !== false) {
+            $endpoint = 'tasks';
+        } elseif (strpos($uri, 'bad-behaviors') !== false) {
+            $endpoint = 'bad-behaviors';
+        } elseif (strpos($uri, 'rewards') !== false) {
             $endpoint = 'rewards';
-        } elseif (strpos($uri, 'activit') !== false) {
+        } elseif (strpos($uri, 'activities') !== false) {
             $endpoint = 'activities';
         } elseif (strpos($uri, 'dashboard') !== false) {
             $endpoint = 'dashboard';
-        } elseif (strpos($uri, 'daily') !== false) {
-            $endpoint = 'daily';
         }
     }
 
     // If no endpoint found, show API info
     if (!$endpoint) {
         sendJson([
-            'message' => 'MyKids API v2.0 for MyKidsDB2 (Complete)',
-            'version' => '2.0.1',
+            'message' => 'MyKids API for IIS Server (sqlsrv)',
+            'version' => '1.0.1',
             'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'IIS',
             'php_version' => PHP_VERSION,
-            'database' => 'MyKidsDB2 (from config)',
             'database_driver' => 'sqlsrv',
-            'timezone' => date_default_timezone_get(),
             'cors_enabled' => true,
             'endpoints' => [
                 'GET /?children - ดึงเด็กทั้งหมด',
                 'GET /?children={id} - ดึงเด็กคนเดียว',
-                'GET /?children={id}&today-score - ดึงคะแนนวันนี้',
                 'POST /?children - สร้างเด็กใหม่',
-                'GET /?behaviors - ดึงพฤติกรรมทั้งหมด',
-                'GET /?good-behaviors หรือ /?tasks - ดึงพฤติกรรมดี',
+                'GET /?tasks - ดึงพฤติกรรมดี',
                 'GET /?bad-behaviors - ดึงพฤติกรรมไม่ดี',
                 'GET /?rewards - ดึงรางวัล',
                 'GET /?activities - ดึงกิจกรรม',
                 'POST /?activities - บันทึกกิจกรรม',
-                'GET /?daily - ดึงข้อมูลรายวัน (DailyActivity)',
                 'GET /?dashboard - ดึงข้อมูลภาพรวม',
                 'GET /?health - ตรวจสอบสถานะ'
             ],
-            'new_features_v2' => [
-                'Today Score: GET /?children={id}&today-score',
-                'Separate Good/Bad Behaviors: /?good-behaviors, /?bad-behaviors',
-                'Daily Activity Summary: /?daily',
-                'Thailand Timezone Support',
-                'Improved DateTime handling',
-                'Support both activityId and behaviorId'
-            ],
             'example_urls' => [
                 'https://apps4.coop.ku.ac.th/mykids/api/?children',
-                'https://apps4.coop.ku.ac.th/mykids/api/?children=000001&today-score',
-                'https://apps4.coop.ku.ac.th/mykids/api/?good-behaviors',
-                'https://apps4.coop.ku.ac.th/mykids/api/?bad-behaviors',
-                'https://apps4.coop.ku.ac.th/mykids/api/?daily',
-                'https://apps4.coop.ku.ac.th/mykids/api/?health'
+                'https://apps4.coop.ku.ac.th/mykids/api/?health', 
+                'https://apps4.coop.ku.ac.th/mykids/api/?tasks'
             ],
             'current_request' => $debug
         ]);
@@ -239,10 +216,9 @@ try {
             sendJson([
                 'status' => 'OK',
                 'timestamp' => date('c'),
-                'database' => 'MyKidsDB2 Connected (sqlsrv)',
+                'database' => 'Connected (sqlsrv)',
                 'server' => $_SERVER['SERVER_SOFTWARE'] ?? 'IIS',
                 'php_version' => PHP_VERSION,
-                'timezone' => date_default_timezone_get(),
                 'memory_usage' => memory_get_usage(true),
                 'endpoint_detected' => $endpoint,
                 'cors_origin' => $_SERVER['HTTP_ORIGIN'] ?? '*'
@@ -254,12 +230,8 @@ try {
             break;
             
         case 'behaviors':
-            handleAllBehaviors($conn, $method, $id);
-            break;
-            
-        case 'good-behaviors':
         case 'tasks':
-            handleGoodBehaviors($conn, $method, $id);
+            handleBehaviors($conn, $method, $id);
             break;
             
         case 'bad-behaviors':
@@ -275,10 +247,6 @@ try {
             handleActivities($conn, $method, $id);
             break;
             
-        case 'daily':
-            handleDailyActivity($conn, $method, $id);
-            break;
-            
         case 'dashboard':
             handleDashboard($conn, $method);
             break;
@@ -287,7 +255,7 @@ try {
             sendJson([
                 'error' => 'Unknown endpoint',
                 'endpoint' => $endpoint,
-                'available_endpoints' => ['children', 'behaviors', 'good-behaviors', 'bad-behaviors', 'rewards', 'activities', 'daily', 'dashboard', 'health'],
+                'available_endpoints' => ['children', 'behaviors', 'tasks', 'bad-behaviors', 'rewards', 'activities', 'dashboard', 'health'],
                 'debug' => $debug
             ], 404);
     }
@@ -312,69 +280,16 @@ try {
 function handleChildren($conn, $method, $id) {
     switch ($method) {
         case 'GET':
-            // ตรวจสอบว่าต้องการ today-score หรือไม่
-            if (isset($_GET['today-score']) || strpos($_SERVER['QUERY_STRING'], 'today-score') !== false) {
-                if (!$id) {
-                    sendJson(['error' => 'Child ID is required for today-score'], 400);
-                }
-                
-                // ดึงคะแนนวันนี้เท่านั้น
-                $today = date('Y-m-d');
-                $sql = "
-                    SELECT 
-                        c.Id,
-                        c.Name,
-                        COALESCE(SUM(al.Points), 0) as TodayScore,
-                        COUNT(CASE WHEN al.ActivityType = 'Good' THEN 1 END) as TodayGoodBehaviors,
-                        COUNT(CASE WHEN al.ActivityType = 'Bad' THEN 1 END) as TodayBadBehaviors,
-                        COUNT(CASE WHEN al.ActivityType = 'Reward' THEN 1 END) as TodayRewards
-                    FROM Children c
-                    LEFT JOIN ActivityLogs al ON c.Id = al.ChildId 
-                        AND CAST(al.ActivityDate AS DATE) = ?
-                    WHERE c.Id = ? AND c.IsActive = 1
-                    GROUP BY c.Id, c.Name
-                ";
-                
-                $stmt = sqlsrv_query($conn, $sql, [$today, $id]);
-                
-                if ($stmt === false) {
-                    throw new Exception('Today score query failed: ' . print_r(sqlsrv_errors(), true));
-                }
-                
-                $result = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-                
-                if (!$result) {
-                    sqlsrv_free_stmt($stmt);
-                    sendJson(['error' => 'Child not found', 'id' => $id], 404);
-                }
-                
-                sqlsrv_free_stmt($stmt);
-                sendJson([
-                    'childId' => $result['Id'],
-                    'childName' => $result['Name'],
-                    'date' => $today,
-                    'totalScore' => (int)$result['TodayScore'],
-                    'todayActivities' => [
-                        'goodBehaviors' => (int)$result['TodayGoodBehaviors'],
-                        'badBehaviors' => (int)$result['TodayBadBehaviors'],
-                        'rewards' => (int)$result['TodayRewards']
-                    ],
-                    'timestamp' => date('c')
-                ]);
-            }
-            
             if ($id) {
                 // Get specific child with calculated points
                 $sql = "
                     SELECT 
-                        c.Id, c.Name, c.Age, c.AvatarPath, 
-                        CONVERT(varchar(23), c.CreatedAt, 121) as CreatedAt,
+                        c.Id, c.Name, c.Age, c.AvatarPath, c.CreatedAt,
                         COALESCE(points.TotalPoints, 0) as TotalPoints,
                         COALESCE(points.EarnedPoints, 0) as EarnedPoints,
                         COALESCE(points.DeductedPoints, 0) as DeductedPoints,
                         COALESCE(activity_counts.GoodBehaviorCount, 0) as GoodBehaviorCount,
-                        COALESCE(activity_counts.BadBehaviorCount, 0) as BadBehaviorCount,
-                        COALESCE(activity_counts.RewardCount, 0) as RewardCount
+                        COALESCE(activity_counts.BadBehaviorCount, 0) as BadBehaviorCount
                     FROM Children c
                     LEFT JOIN (
                         SELECT ChildId,
@@ -387,8 +302,7 @@ function handleChildren($conn, $method, $id) {
                     LEFT JOIN (
                         SELECT ChildId,
                             SUM(CASE WHEN ActivityType = 'Good' THEN 1 ELSE 0 END) as GoodBehaviorCount,
-                            SUM(CASE WHEN ActivityType = 'Bad' THEN 1 ELSE 0 END) as BadBehaviorCount,
-                            SUM(CASE WHEN ActivityType = 'Reward' THEN 1 ELSE 0 END) as RewardCount
+                            SUM(CASE WHEN ActivityType = 'Bad' THEN 1 ELSE 0 END) as BadBehaviorCount
                         FROM ActivityLogs
                         GROUP BY ChildId
                     ) activity_counts ON c.Id = activity_counts.ChildId
@@ -415,14 +329,12 @@ function handleChildren($conn, $method, $id) {
                 // Get all children with calculated points
                 $sql = "
                     SELECT 
-                        c.Id, c.Name, c.Age, c.AvatarPath, 
-                        CONVERT(varchar(23), c.CreatedAt, 121) as CreatedAt,
+                        c.Id, c.Name, c.Age, c.AvatarPath, c.CreatedAt,
                         COALESCE(points.TotalPoints, 0) as TotalPoints,
                         COALESCE(points.EarnedPoints, 0) as EarnedPoints,
                         COALESCE(points.DeductedPoints, 0) as DeductedPoints,
                         COALESCE(activity_counts.GoodBehaviorCount, 0) as GoodBehaviorCount,
-                        COALESCE(activity_counts.BadBehaviorCount, 0) as BadBehaviorCount,
-                        COALESCE(activity_counts.RewardCount, 0) as RewardCount
+                        COALESCE(activity_counts.BadBehaviorCount, 0) as BadBehaviorCount
                     FROM Children c
                     LEFT JOIN (
                         SELECT ChildId,
@@ -435,13 +347,12 @@ function handleChildren($conn, $method, $id) {
                     LEFT JOIN (
                         SELECT ChildId,
                             SUM(CASE WHEN ActivityType = 'Good' THEN 1 ELSE 0 END) as GoodBehaviorCount,
-                            SUM(CASE WHEN ActivityType = 'Bad' THEN 1 ELSE 0 END) as BadBehaviorCount,
-                            SUM(CASE WHEN ActivityType = 'Reward' THEN 1 ELSE 0 END) as RewardCount
+                            SUM(CASE WHEN ActivityType = 'Bad' THEN 1 ELSE 0 END) as BadBehaviorCount
                         FROM ActivityLogs
                         GROUP BY ChildId
                     ) activity_counts ON c.Id = activity_counts.ChildId
                     WHERE c.IsActive = 1
-                    ORDER BY c.Id
+                    ORDER BY c.Name
                 ";
                 
                 $stmt = sqlsrv_query($conn, $sql);
@@ -472,7 +383,6 @@ function handleChildren($conn, $method, $id) {
                 ], 400);
             }
             
-            // Use trigger to auto-generate Id (000001, 000002, etc.)
             $sql = "
                 INSERT INTO Children (Name, Age, AvatarPath)
                 VALUES (?, ?, ?)
@@ -503,39 +413,7 @@ function handleChildren($conn, $method, $id) {
     }
 }
 
-function handleAllBehaviors($conn, $method, $id) {
-    if ($method !== 'GET') {
-        sendJson(['error' => 'Method not allowed', 'allowed' => ['GET']], 405);
-    }
-    
-    $sql = "
-        SELECT Id, Name, Points, Color, Category, Type, IsRepeatable, IsActive
-        FROM Behaviors 
-        WHERE IsActive = 1 
-        ORDER BY Type, Category, Name
-    ";
-    
-    $stmt = sqlsrv_query($conn, $sql);
-    
-    if ($stmt === false) {
-        throw new Exception('All behaviors query failed: ' . print_r(sqlsrv_errors(), true));
-    }
-    
-    $behaviors = [];
-    while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-        $behaviors[] = $row;
-    }
-    
-    sqlsrv_free_stmt($stmt);
-    sendJson([
-        'behaviors' => $behaviors,
-        'good_behaviors' => array_values(array_filter($behaviors, fn($b) => $b['Type'] === 'Good')),
-        'bad_behaviors' => array_values(array_filter($behaviors, fn($b) => $b['Type'] === 'Bad')),
-        'total_count' => count($behaviors)
-    ]);
-}
-
-function handleGoodBehaviors($conn, $method, $id) {
+function handleBehaviors($conn, $method, $id) {
     if ($method !== 'GET') {
         sendJson(['error' => 'Method not allowed', 'allowed' => ['GET']], 405);
     }
@@ -550,7 +428,7 @@ function handleGoodBehaviors($conn, $method, $id) {
     $stmt = sqlsrv_query($conn, $sql);
     
     if ($stmt === false) {
-        throw new Exception('Good behaviors query failed: ' . print_r(sqlsrv_errors(), true));
+        throw new Exception('Behaviors query failed: ' . print_r(sqlsrv_errors(), true));
     }
     
     $behaviors = [];
@@ -582,8 +460,6 @@ function handleBadBehaviors($conn, $method, $id) {
     
     $badBehaviors = [];
     while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-        // Convert negative penalty to positive for display, if needed
-        $row['Penalty'] = abs($row['Penalty']);
         $badBehaviors[] = $row;
     }
     
@@ -621,7 +497,7 @@ function handleRewards($conn, $method, $id) {
 function handleActivities($conn, $method, $id) {
     switch ($method) {
         case 'GET':
-            $limit = $_GET['limit'] ?? 50;
+            $limit = $_GET['limit'] ?? 20;
             $childId = $_GET['child_id'] ?? $_GET['childId'] ?? $id;
             $date = $_GET['date'] ?? null;
             
@@ -634,7 +510,7 @@ function handleActivities($conn, $method, $id) {
                         al.BehaviorId as ActivityId,
                         al.ActivityType,
                         al.Points,
-                        CONVERT(varchar(10), al.ActivityDate, 121) as ActivityDate,
+                        al.ActivityDate,
                         al.Note,
                         c.Name as ChildName,
                         CASE 
@@ -642,19 +518,13 @@ function handleActivities($conn, $method, $id) {
                             WHEN al.ActivityType = 'Bad' THEN b.Name
                             WHEN al.ActivityType = 'Reward' THEN r.Name
                             ELSE 'Unknown'
-                        END as ActivityName,
-                        CASE 
-                            WHEN al.ActivityType = 'Good' THEN b.Color
-                            WHEN al.ActivityType = 'Bad' THEN b.Color
-                            WHEN al.ActivityType = 'Reward' THEN r.Color
-                            ELSE '#gray'
-                        END as ActivityColor
+                        END as ActivityName
                     FROM ActivityLogs al
                     LEFT JOIN Children c ON al.ChildId = c.Id
                     LEFT JOIN Behaviors b ON al.BehaviorId = b.Id
                     LEFT JOIN Rewards r ON al.BehaviorId = r.Id
                     WHERE al.ChildId = ? 
-                    AND CAST(al.ActivityDate AS DATE) = ?
+                    AND al.ActivityDate = ?
                     ORDER BY al.Id DESC
                 ";
                 $params = [$childId, $date];
@@ -667,7 +537,7 @@ function handleActivities($conn, $method, $id) {
                         al.BehaviorId as ActivityId,
                         al.ActivityType,
                         al.Points,
-                        CONVERT(varchar(10), al.ActivityDate, 121) as ActivityDate,
+                        al.ActivityDate,
                         al.Note,
                         c.Name as ChildName,
                         CASE 
@@ -675,13 +545,7 @@ function handleActivities($conn, $method, $id) {
                             WHEN al.ActivityType = 'Bad' THEN b.Name
                             WHEN al.ActivityType = 'Reward' THEN r.Name
                             ELSE 'Unknown'
-                        END as ActivityName,
-                        CASE 
-                            WHEN al.ActivityType = 'Good' THEN b.Color
-                            WHEN al.ActivityType = 'Bad' THEN b.Color
-                            WHEN al.ActivityType = 'Reward' THEN r.Color
-                            ELSE '#gray'
-                        END as ActivityColor
+                        END as ActivityName
                     FROM ActivityLogs al
                     LEFT JOIN Children c ON al.ChildId = c.Id
                     LEFT JOIN Behaviors b ON al.BehaviorId = b.Id
@@ -699,7 +563,7 @@ function handleActivities($conn, $method, $id) {
                         al.BehaviorId as ActivityId,
                         al.ActivityType,
                         al.Points,
-                        CONVERT(varchar(10), al.ActivityDate, 121) as ActivityDate,
+                        al.ActivityDate,
                         al.Note,
                         c.Name as ChildName,
                         CASE 
@@ -707,13 +571,7 @@ function handleActivities($conn, $method, $id) {
                             WHEN al.ActivityType = 'Bad' THEN b.Name
                             WHEN al.ActivityType = 'Reward' THEN r.Name
                             ELSE 'Unknown'
-                        END as ActivityName,
-                        CASE 
-                            WHEN al.ActivityType = 'Good' THEN b.Color
-                            WHEN al.ActivityType = 'Bad' THEN b.Color
-                            WHEN al.ActivityType = 'Reward' THEN r.Color
-                            ELSE '#gray'
-                        END as ActivityColor
+                        END as ActivityName
                     FROM ActivityLogs al
                     LEFT JOIN Children c ON al.ChildId = c.Id
                     LEFT JOIN Behaviors b ON al.BehaviorId = b.Id
@@ -731,6 +589,9 @@ function handleActivities($conn, $method, $id) {
             
             $activities = [];
             while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+                if ($row['ActivityDate'] instanceof DateTime) {
+                    $row['ActivityDate'] = $row['ActivityDate']->format('Y-m-d\TH:i:s.v');
+                }
                 $activities[] = $row;
             }
             
@@ -742,11 +603,8 @@ function handleActivities($conn, $method, $id) {
             $input = file_get_contents('php://input');
             $data = json_decode($input, true);
             
-            // รองรับทั้ง activityId และ behaviorId สำหรับ backward compatibility
-            $behaviorId = $data['behaviorId'] ?? $data['activityId'] ?? null;
-            
-            if (!$data || !isset($data['childId'], $data['activityType']) || !$behaviorId) {
-                sendJson(['error' => 'Missing required fields: childId, activityType, and behaviorId/activityId'], 400);
+            if (!$data || !isset($data['childId'], $data['activityType'], $data['activityId'])) {
+                sendJson(['error' => 'Missing required fields: childId, activityType, activityId'], 400);
             }
             
             // Calculate points based on activity type
@@ -754,15 +612,13 @@ function handleActivities($conn, $method, $id) {
             $activityType = ucfirst(strtolower($data['activityType'])); // Good, Bad, Reward
             
             if ($activityType === 'Good' || $activityType === 'Bad') {
-                $stmt = sqlsrv_query($conn, "SELECT Points FROM Behaviors WHERE Id = ? AND Type = ?", [$behaviorId, $activityType]);
+                $stmt = sqlsrv_query($conn, "SELECT Points FROM Behaviors WHERE Id = ? AND Type = ?", [$data['activityId'], $activityType]);
                 if ($stmt && $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
                     $points = $activityType === 'Bad' ? -abs($row['Points']) : $row['Points'];
-                } else {
-                    sendJson(['error' => 'Behavior not found', 'behaviorId' => $behaviorId, 'type' => $activityType], 404);
                 }
                 if ($stmt) sqlsrv_free_stmt($stmt);
             } elseif ($activityType === 'Reward') {
-                $stmt = sqlsrv_query($conn, "SELECT Cost FROM Rewards WHERE Id = ?", [$behaviorId]);
+                $stmt = sqlsrv_query($conn, "SELECT Cost FROM Rewards WHERE Id = ?", [$data['activityId']]);
                 if ($stmt && $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
                     $cost = $row['Cost'];
                     
@@ -790,10 +646,10 @@ function handleActivities($conn, $method, $id) {
             $sql = "INSERT INTO ActivityLogs (ChildId, BehaviorId, ActivityType, Points, ActivityDate, Note) VALUES (?, ?, ?, ?, ?, ?)";
             $params = [
                 $data['childId'],
-                $behaviorId,
+                $data['activityId'],
                 $activityType,
                 $points,
-                $data['date'] ?? date('Y-m-d'),
+                date('Y-m-d'),
                 $data['note'] ?? ''
             ];
             
@@ -804,123 +660,11 @@ function handleActivities($conn, $method, $id) {
             }
             
             sqlsrv_free_stmt($stmt);
-            
-            // Update/Insert DailyActivity summary if table exists
-            try {
-                $updateDailyActivity = "
-                    MERGE DailyActivity AS target
-                    USING (SELECT ? as BehaviorId, ? as ChildId, ? as ActivityDate) AS source
-                    ON target.BehaviorId = source.BehaviorId 
-                       AND target.ChildId = source.ChildId 
-                       AND target.ActivityDate = source.ActivityDate
-                    WHEN MATCHED THEN
-                        UPDATE SET 
-                            Count = Count + 1,
-                            TotalPoints = TotalPoints + ?,
-                            UpdatedAt = GETDATE()
-                    WHEN NOT MATCHED THEN
-                        INSERT (BehaviorId, ChildId, ActivityDate, Count, TotalPoints)
-                        VALUES (?, ?, ?, 1, ?);
-                ";
-                
-                $dailyParams = [
-                    $behaviorId, $data['childId'], $data['date'] ?? date('Y-m-d'), // source
-                    $points, // matched update
-                    $behaviorId, $data['childId'], $data['date'] ?? date('Y-m-d'), $points // not matched insert
-                ];
-                
-                $dailyStmt = sqlsrv_query($conn, $updateDailyActivity, $dailyParams);
-                if ($dailyStmt) {
-                    sqlsrv_free_stmt($dailyStmt);
-                }
-            } catch (Exception $e) {
-                // DailyActivity table might not exist, ignore error
-            }
-            
-            sendJson(['success' => true, 'points' => $points, 'activityType' => $activityType], 201);
+            sendJson(['success' => true, 'points' => $points], 201);
             break;
             
         default:
             sendJson(['error' => 'Method not allowed', 'allowed' => ['GET', 'POST']], 405);
-    }
-}
-
-function handleDailyActivity($conn, $method, $id) {
-    if ($method !== 'GET') {
-        sendJson(['error' => 'Method not allowed', 'allowed' => ['GET']], 405);
-    }
-    
-    $childId = $_GET['child_id'] ?? $_GET['childId'] ?? $id;
-    $date = $_GET['date'] ?? date('Y-m-d');
-    $limit = $_GET['limit'] ?? 30;
-    
-    try {
-        if ($childId) {
-            // Get daily activity for specific child
-            $sql = "
-                SELECT TOP (?)
-                    da.BehaviorId, da.ChildId, da.ActivityDate, da.Count, da.TotalPoints,
-                    c.Name as ChildName,
-                    CASE 
-                        WHEN b.Type = 'Good' THEN b.Name
-                        WHEN b.Type = 'Bad' THEN b.Name
-                        ELSE r.Name
-                    END as ActivityName,
-                    CASE 
-                        WHEN b.Type = 'Good' THEN b.Type
-                        WHEN b.Type = 'Bad' THEN b.Type
-                        ELSE 'Reward'
-                    END as ActivityType
-                FROM DailyActivity da
-                LEFT JOIN Children c ON da.ChildId = c.Id
-                LEFT JOIN Behaviors b ON da.BehaviorId = b.Id
-                LEFT JOIN Rewards r ON da.BehaviorId = r.Id
-                WHERE da.ChildId = ?
-                ORDER BY da.ActivityDate DESC, da.TotalPoints DESC
-            ";
-            $params = [$limit, $childId];
-        } else {
-            // Get daily activity summary for all children
-            $sql = "
-                SELECT TOP (?)
-                    da.ChildId, da.ActivityDate,
-                    SUM(CASE WHEN da.TotalPoints > 0 THEN da.TotalPoints ELSE 0 END) as EarnedPoints,
-                    SUM(CASE WHEN da.TotalPoints < 0 THEN ABS(da.TotalPoints) ELSE 0 END) as DeductedPoints,
-                    SUM(da.TotalPoints) as NetPoints,
-                    COUNT(*) as ActivityCount,
-                    c.Name as ChildName
-                FROM DailyActivity da
-                LEFT JOIN Children c ON da.ChildId = c.Id
-                GROUP BY da.ChildId, da.ActivityDate, c.Name
-                ORDER BY da.ActivityDate DESC, NetPoints DESC
-            ";
-            $params = [$limit];
-        }
-        
-        $stmt = sqlsrv_query($conn, $sql, $params);
-        
-        if ($stmt === false) {
-            throw new Exception('Daily activity query failed: ' . print_r(sqlsrv_errors(), true));
-        }
-        
-        $dailyActivities = [];
-        while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-            if ($row['ActivityDate'] instanceof DateTime) {
-                $row['ActivityDate'] = $row['ActivityDate']->format('Y-m-d');
-            }
-            $dailyActivities[] = $row;
-        }
-        
-        sqlsrv_free_stmt($stmt);
-        sendJson($dailyActivities);
-        
-    } catch (Exception $e) {
-        // If DailyActivity table doesn't exist, return empty array
-        sendJson([
-            'message' => 'DailyActivity table not available',
-            'error' => $e->getMessage(),
-            'data' => []
-        ]);
     }
 }
 
@@ -937,8 +681,7 @@ function handleDashboard($conn, $method) {
             COALESCE(points.EarnedPoints, 0) as EarnedPoints,
             COALESCE(points.DeductedPoints, 0) as DeductedPoints,
             COALESCE(activity_counts.GoodBehaviorCount, 0) as GoodBehaviorCount,
-            COALESCE(activity_counts.BadBehaviorCount, 0) as BadBehaviorCount,
-            COALESCE(activity_counts.RewardCount, 0) as RewardCount
+            COALESCE(activity_counts.BadBehaviorCount, 0) as BadBehaviorCount
         FROM Children c
         LEFT JOIN (
             SELECT ChildId,
@@ -951,13 +694,12 @@ function handleDashboard($conn, $method) {
         LEFT JOIN (
             SELECT ChildId,
                 SUM(CASE WHEN ActivityType = 'Good' THEN 1 ELSE 0 END) as GoodBehaviorCount,
-                SUM(CASE WHEN ActivityType = 'Bad' THEN 1 ELSE 0 END) as BadBehaviorCount,
-                SUM(CASE WHEN ActivityType = 'Reward' THEN 1 ELSE 0 END) as RewardCount
+                SUM(CASE WHEN ActivityType = 'Bad' THEN 1 ELSE 0 END) as BadBehaviorCount
             FROM ActivityLogs
             GROUP BY ChildId
         ) activity_counts ON c.Id = activity_counts.ChildId
         WHERE c.IsActive = 1
-        ORDER BY c.Id
+        ORDER BY c.Name
     ";
     
     $stmt = sqlsrv_query($conn, $sql);
@@ -980,7 +722,7 @@ function handleDashboard($conn, $method) {
             al.BehaviorId as ActivityId,
             al.ActivityType,
             al.Points,
-            CONVERT(varchar(10), al.ActivityDate, 121) as ActivityDate,
+            al.ActivityDate,
             al.Note,
             c.Name as ChildName,
             CASE 
@@ -1000,6 +742,9 @@ function handleDashboard($conn, $method) {
     $todayActivities = [];
     if ($todayStmt) {
         while ($row = sqlsrv_fetch_array($todayStmt, SQLSRV_FETCH_ASSOC)) {
+            if ($row['ActivityDate'] instanceof DateTime) {
+                $row['ActivityDate'] = $row['ActivityDate']->format('Y-m-d H:i:s');
+            }
             $todayActivities[] = $row;
         }
         sqlsrv_free_stmt($todayStmt);
@@ -1009,12 +754,10 @@ function handleDashboard($conn, $method) {
         'children' => $children,
         'today_activities' => $todayActivities,
         'timestamp' => date('c'),
-        'database_version' => 'MyKidsDB2',
         'summary' => [
             'total_children' => count($children),
             'total_points' => array_sum(array_column($children, 'TotalPoints')),
-            'today_activities_count' => count($todayActivities),
-            'active_children' => count(array_filter($children, fn($c) => $c['TotalPoints'] > 0))
+            'today_activities_count' => count($todayActivities)
         ]
     ]);
 }

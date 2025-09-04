@@ -5,7 +5,7 @@ return [
     // ใส่ค่าให้ตรงกับ SQL Server ของพี่
     'host' => '127.0.0.1',
     'port' => 1433,
-    'database' => 'MyKidsDB2',
+    'database' => 'MyKidsDB',
     'username' => 'sa',
     'password' => 'password',
     'encrypt'  => false, // ถ้าต้องการ TLS ให้ตั้ง true และ config certificate

@@ -1,14 +1,14 @@
 // pages/HomePage.jsx - ใช้ API แทน LocalStorage
-import React, { useState, useEffect } from 'react';
-import { 
-  useChildren, 
-  useBehaviors, 
-  useBadBehaviors, 
-  useRewards, 
+import React, { useState, useEffect } from "react";
+import {
+  useChildren,
+  useBehaviors,
+  useBadBehaviors,
+  useRewards,
   useActivities,
-  useMutation 
-} from '../hooks/useApi';
-import { apiService } from '../services/api';
+  useMutation,
+} from "../hooks/useApi";
+import { apiService } from "../services/api";
 
 const HomePage = () => {
   // ใช้ Custom Hooks แทน localStorage
@@ -16,23 +16,39 @@ const HomePage = () => {
   const { behaviors, loading: behaviorsLoading } = useBehaviors();
   const { badBehaviors, loading: badBehaviorsLoading } = useBadBehaviors();
   const { rewards, loading: rewardsLoading } = useRewards();
-  
+
   // State สำหรับ UI
   const [selectedChild, setSelectedChild] = useState(null);
   const [activeTab, setActiveTab] = useState("behaviors");
   const [showSummary, setShowSummary] = useState(false);
 
   // Activities สำหรับเด็กที่เลือก
-  const { 
-    activities, 
-    loading: activitiesLoading, 
-    refetch: refetchActivities 
+  const {
+    activities,
+    loading: activitiesLoading,
+    refetch: refetchActivities,
   } = useActivities(selectedChild?.Id, 20);
 
+  // สร้าง Set ของ behaviors ที่ทำแล้ววันนี้
+  const completedBehaviors = React.useMemo(() => {
+    const set = new Set();
+    if (Array.isArray(activities)) {
+      activities.forEach((activity) => {
+        if (
+          (activity.ActivityType === "good" ||
+            activity.activityType === "good") &&
+          (activity.ActivityId || activity.activityId)
+        ) {
+          set.add(activity.ActivityId || activity.activityId);
+        }
+      });
+    }
+    return set;
+  }, [activities]);
+
   // Mutation สำหรับ log activities
-  const { mutate: logActivityMutation, loading: activityMutationLoading } = useMutation(
-    apiService.logActivity.bind(apiService),
-    {
+  const { mutate: logActivityMutation, loading: activityMutationLoading } =
+    useMutation(apiService.logActivity.bind(apiService), {
       onSuccess: () => {
         // Refresh activities และ children (สำหรับ updated points)
         refetchActivities();
@@ -40,9 +56,8 @@ const HomePage = () => {
       },
       onError: (error) => {
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
-      }
-    }
-  );
+      },
+    });
 
   // เลือกเด็กคนแรกเป็นค่าเริ่มต้น
   useEffect(() => {
@@ -52,7 +67,12 @@ const HomePage = () => {
   }, [children, selectedChild]);
 
   // Loading states
-  if (childrenLoading || behaviorsLoading || badBehaviorsLoading || rewardsLoading) {
+  if (
+    childrenLoading ||
+    behaviorsLoading ||
+    badBehaviorsLoading ||
+    rewardsLoading
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -70,15 +90,15 @@ const HomePage = () => {
     try {
       await logActivityMutation({
         childId: selectedChild.Id,
-        activityType: 'good',
+        activityType: "good",
         activityId: behavior.Id,
-        note: `${selectedChild.Name} ทำ ${behavior.Name}`
+        note: `${selectedChild.Name} ทำ ${behavior.Name}`,
       });
-      
+
       // แสดง animation หรือ feedback
       showSuccessMessage(`${selectedChild.Name} ได้ ${behavior.Points} คะแนน!`);
     } catch (error) {
-      console.error('Error logging behavior:', error);
+      console.error("Error logging behavior:", error);
     }
   };
 
@@ -89,14 +109,16 @@ const HomePage = () => {
     try {
       await logActivityMutation({
         childId: selectedChild.Id,
-        activityType: 'bad',
+        activityType: "bad",
         activityId: badBehavior.Id,
-        note: `${selectedChild.Name} ทำ ${badBehavior.Name}`
+        note: `${selectedChild.Name} ทำ ${badBehavior.Name}`,
       });
-      
-      showErrorMessage(`${selectedChild.Name} โดนหัก ${badBehavior.Penalty} คะแนน!`);
+
+      showErrorMessage(
+        `${selectedChild.Name} โดนหัก ${badBehavior.Penalty} คะแนน!`
+      );
     } catch (error) {
-      console.error('Error logging bad behavior:', error);
+      console.error("Error logging bad behavior:", error);
     }
   };
 
@@ -104,24 +126,30 @@ const HomePage = () => {
   const handleRewardClaim = async (reward) => {
     if (!selectedChild || activityMutationLoading) return;
 
-    if (!confirm(`ต้องการแลกรางวัล "${reward.Name}" ใช่ไหม? (ใช้ ${reward.Cost} คะแนน)`)) {
+    if (
+      !confirm(
+        `ต้องการแลกรางวัล "${reward.Name}" ใช่ไหม? (ใช้ ${reward.Cost} คะแนน)`
+      )
+    ) {
       return;
     }
 
     try {
       await logActivityMutation({
         childId: selectedChild.Id,
-        activityType: 'reward',
+        activityType: "reward",
         activityId: reward.Id,
-        note: `${selectedChild.Name} แลก ${reward.Name}`
+        note: `${selectedChild.Name} แลก ${reward.Name}`,
       });
-      
-      showSuccessMessage(`${selectedChild.Name} แลกรางวัล ${reward.Name} สำเร็จ!`);
+
+      showSuccessMessage(
+        `${selectedChild.Name} แลกรางวัล ${reward.Name} สำเร็จ!`
+      );
     } catch (error) {
-      if (error.message.includes('Insufficient points')) {
-        alert('คะแนนไม่เพียงพอ!');
+      if (error.message.includes("Insufficient points")) {
+        alert("คะแนนไม่เพียงพอ!");
       } else {
-        console.error('Error claiming reward:', error);
+        console.error("Error claiming reward:", error);
       }
     }
   };
@@ -129,12 +157,12 @@ const HomePage = () => {
   // Helper functions สำหรับแสดงข้อความ
   const showSuccessMessage = (message) => {
     // Implementation ขึ้นอยู่กับ toast library ที่ใช้
-    console.log('SUCCESS:', message);
+    console.log("SUCCESS:", message);
     // หรือใช้ toast notification
   };
 
   const showErrorMessage = (message) => {
-    console.log('ERROR:', message);
+    console.log("ERROR:", message);
   };
 
   return (
@@ -150,7 +178,9 @@ const HomePage = () => {
 
         {/* Children Selection */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">เลือกเด็ก</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            เลือกเด็ก
+          </h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {children.map((child) => (
               <button
@@ -158,8 +188,8 @@ const HomePage = () => {
                 onClick={() => setSelectedChild(child)}
                 className={`flex-shrink-0 p-4 rounded-xl transition-all duration-200 ${
                   selectedChild?.Id === child.Id
-                    ? 'scale-105 shadow-lg'
-                    : 'hover:scale-105 hover:shadow-md'
+                    ? "scale-105 shadow-lg"
+                    : "hover:scale-105 hover:shadow-md"
                 }`}
                 style={{ backgroundColor: child.BackgroundColor }}
               >
@@ -178,14 +208,16 @@ const HomePage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div 
+                <div
                   className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
                   style={{ backgroundColor: selectedChild.BackgroundColor }}
                 >
                   {selectedChild.Emoji}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-800">{selectedChild.Name}</h3>
+                  <h3 className="text-2xl font-bold text-gray-800">
+                    {selectedChild.Name}
+                  </h3>
                   <p className="text-gray-600">อายุ {selectedChild.Age} ปี</p>
                   <p className="text-lg font-semibold text-purple-600">
                     คะแนนรวม: {selectedChild.TotalPoints || 0} คะแนน
@@ -196,7 +228,7 @@ const HomePage = () => {
                 onClick={() => setShowSummary(!showSummary)}
                 className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
               >
-                {showSummary ? 'ซ่อนสรุป' : 'แสดงสรุป'}
+                {showSummary ? "ซ่อนสรุป" : "แสดงสรุป"}
               </button>
             </div>
           </div>
@@ -205,7 +237,9 @@ const HomePage = () => {
         {/* Activities Summary */}
         {showSummary && selectedChild && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">กิจกรรมล่าสุด</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              กิจกรรมล่าสุด
+            </h3>
             {activitiesLoading ? (
               <p className="text-gray-500">กำลังโหลด...</p>
             ) : activities.length === 0 ? (
@@ -213,17 +247,27 @@ const HomePage = () => {
             ) : (
               <div className="space-y-2">
                 {activities.slice(0, 5).map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between py-2 border-b last:border-b-0"
+                  >
                     <div>
-                      <span className="font-medium">{activity.ActivityName}</span>
+                      <span className="font-medium">
+                        {activity.ActivityName}
+                      </span>
                       <span className="text-sm text-gray-500 ml-2">
-                        {new Date(activity.ActivityDate).toLocaleString('th-TH')}
+                        {new Date(activity.ActivityDate).toLocaleString(
+                          "th-TH"
+                        )}
                       </span>
                     </div>
-                    <span className={`font-semibold ${
-                      activity.Points > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {activity.Points > 0 ? '+' : ''}{activity.Points}
+                    <span
+                      className={`font-semibold ${
+                        activity.Points > 0 ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {activity.Points > 0 ? "+" : ""}
+                      {activity.Points}
                     </span>
                   </div>
                 ))}
@@ -271,20 +315,39 @@ const HomePage = () => {
             {/* Good Behaviors Tab */}
             {activeTab === "behaviors" && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {behaviors.map((behavior) => (
-                  <button
-                    key={behavior.Id}
-                    onClick={() => handleBehaviorClick(behavior)}
-                    disabled={activityMutationLoading}
-                    className={`p-4 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-md ${
-                      activityMutationLoading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    style={{ backgroundColor: behavior.Color }}
-                  >
-                    <div className="font-medium text-gray-800 mb-2">{behavior.Name}</div>
-                    <div className="text-sm text-gray-600">+{behavior.Points} คะแนน</div>
-                  </button>
-                ))}
+                {behaviors.map((behavior) => {
+                  const isCompleted = completedBehaviors.has(behavior.Id);
+                  return (
+                    <button
+                      key={behavior.Id}
+                      onClick={() => handleBehaviorClick(behavior)}
+                      disabled={activityMutationLoading || isCompleted}
+                      className={`p-4 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-md ${
+                        activityMutationLoading || isCompleted
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      } ${isCompleted ? "border-2 border-green-500" : ""}`}
+                      style={{ backgroundColor: behavior.Color }}
+                    >
+                      <div className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                        {behavior.Name}
+                        {isCompleted && (
+                          <span className="ml-1 text-green-600 text-sm font-bold">
+                            ✔️
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        +{behavior.Points} คะแนน
+                      </div>
+                      {isCompleted && (
+                        <div className="text-xs text-green-500 mt-1">
+                          ทำแล้ววันนี้
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -297,12 +360,18 @@ const HomePage = () => {
                     onClick={() => handleBadBehaviorClick(badBehavior)}
                     disabled={activityMutationLoading}
                     className={`p-4 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-md ${
-                      activityMutationLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      activityMutationLoading
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
                     }`}
                     style={{ backgroundColor: badBehavior.Color }}
                   >
-                    <div className="font-medium text-gray-800 mb-2">{badBehavior.Name}</div>
-                    <div className="text-sm text-gray-600">-{badBehavior.Penalty} คะแนน</div>
+                    <div className="font-medium text-gray-800 mb-2">
+                      {badBehavior.Name}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      -{badBehavior.Penalty} คะแนน
+                    </div>
                   </button>
                 ))}
               </div>
@@ -312,7 +381,9 @@ const HomePage = () => {
             {activeTab === "rewards" && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {rewards.map((reward) => {
-                  const canAfford = selectedChild && (selectedChild.TotalPoints || 0) >= reward.Cost;
+                  const canAfford =
+                    selectedChild &&
+                    (selectedChild.TotalPoints || 0) >= reward.Cost;
                   return (
                     <button
                       key={reward.Id}
@@ -320,14 +391,18 @@ const HomePage = () => {
                       disabled={!canAfford || activityMutationLoading}
                       className={`p-4 rounded-xl transition-all duration-200 ${
                         canAfford && !activityMutationLoading
-                          ? 'hover:scale-105 hover:shadow-md'
-                          : 'opacity-50 cursor-not-allowed'
+                          ? "hover:scale-105 hover:shadow-md"
+                          : "opacity-50 cursor-not-allowed"
                       }`}
-                      style={{ backgroundColor: reward.Color || '#ddd6fe' }}
+                      style={{ backgroundColor: reward.Color || "#ddd6fe" }}
                     >
                       <div className="text-2xl mb-2">{reward.Icon}</div>
-                      <div className="font-medium text-gray-800 mb-1">{reward.Name}</div>
-                      <div className="text-sm text-gray-600">{reward.Cost} คะแนน</div>
+                      <div className="font-medium text-gray-800 mb-1">
+                        {reward.Name}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {reward.Cost} คะแนน
+                      </div>
                     </button>
                   );
                 })}
